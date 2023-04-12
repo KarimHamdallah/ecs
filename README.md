@@ -151,7 +151,7 @@ int main()
 	return 0;
 }
 ```
-... c++
+```c++
 - Output:
 Entity With ID 0 Has SpriteRendererComponenet
 Color : r = 1, g = 0, b = 0, a = 1
@@ -166,4 +166,4 @@ EntityID = 0 Has Transform Component With Data >> x = 20, y = 50, z = 30
 EntityID = 1 Has Transform Component With Data >> x = 2, y = 5, z = 4
 ------------------------------
 Press any key to continue . . .
-...
+```
