@@ -21,7 +21,7 @@ I will update it instantly.
 - Testing it in real game engine or game.
 
 **Design:**
-
+![ecs](/ECS/assets/ECSDesign.png?raw=true)
 
 
 **HOW TO USE IT:**
