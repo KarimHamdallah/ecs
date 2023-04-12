@@ -24,7 +24,7 @@ I will update it instantly.
 
 ![ecs](/ECS/assets/ECS.png?raw=true)
 
-* HOW TO USE IT:
+**HOW TO USE IT:**
 ```c++
 #include <iostream>
 #include "Ecs/Ecs.h"
