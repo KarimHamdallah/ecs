@@ -20,9 +20,9 @@ I will update it instantly.
 - Add Systems and Required Componenets For These Systems.
 - Testing it in real game engine or game.
 
-**Design:**
+**CurrentDesign:**
 ![ecs](/ECS/assets/ECSDesign.png?raw=true)
-
+**FutureDesign (Archetypes):**
 
 **HOW TO USE IT:**
 ```c++
