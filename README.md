@@ -151,7 +151,7 @@ int main()
 	return 0;
 }
 ```
-...
+... c++
 - Output:
 Entity With ID 0 Has SpriteRendererComponenet
 Color : r = 1, g = 0, b = 0, a = 1
