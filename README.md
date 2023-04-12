@@ -6,7 +6,7 @@ ECS Or Entity Component System / DesignPattern is largley used in games, it cons
 So I Created This Light weight STL based ECS Library For using it in my games and my own game engine,
 I will update it instantly.
 ...
-* CURRENT FEATURES:
+** CURRENT FEATURES: **
 ...
 - CreatEntity.
 - DestroyEntity.
@@ -15,7 +15,7 @@ I will update it instantly.
 - HasComponent.
 - 3 Different Ways To Query For Specific Component.
 ...
-* FUTURE PALN:
+** FUTURE PALN: **
 ...
 - Make Query More Faster By Using Components Archetypes.
 - Add Query For More Than One Componenet.
