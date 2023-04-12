@@ -22,7 +22,7 @@ I will update it instantly.
 
 **Design:**
 
-![ecs](/ECS/assets/ECS.png?raw=true)
+
 
 **HOW TO USE IT:**
 ```c++
