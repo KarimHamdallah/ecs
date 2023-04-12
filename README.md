@@ -21,7 +21,8 @@ I will update it instantly.
 - Testing it in real game engine or game.
 
 **Design:**
-![ecs](/ECS/assets/ECS.png?raw=true "ECS DESIGN")
+
+![ecs](/ECS/assets/ECS.png?raw=true)
 
 * HOW TO USE IT:
 ```c++
