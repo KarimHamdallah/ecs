@@ -20,8 +20,8 @@ I will update it instantly.
 - Add Systems and Required Componenets For These Systems.
 - Testing it in real game engine or game.
 
-* Design:
-
+**Design:**
+![ecs](/ECS/assets/ECS.png?raw=true "ECS DESIGN")
 
 * HOW TO USE IT:
 ```c++
