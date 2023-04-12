@@ -73,7 +73,9 @@ int main()
 	reg.AddComponent<TransformComponent>(e2, 2.0f, 5.0f, 4.0f); // Replace
 
 	// DestryEntity
-	reg.DestroyEntity(e1);
+	bool destroy = false;
+	if (destroy)
+		reg.DestroyEntity(e1);
 	
 	// Has Componenet
 	bool has = reg.HasComponent<SpriteRendererComponent>(e1);
@@ -149,3 +151,19 @@ int main()
 	return 0;
 }
 ```
+...
+- Output:
+Entity With ID 0 Has SpriteRendererComponenet
+Color : r = 1, g = 0, b = 0, a = 1
+------------------------------
+EntityID = 0 Has Transform Component With Data >> x = 20, y = 50, z = 30
+EntityID = 1 Has Transform Component With Data >> x = 2, y = 5, z = 4
+------------------------------
+EntityID = 0 Has Transform Component With Data >> x = 20, y = 50, z = 30
+EntityID = 1 Has Transform Component With Data >> x = 2, y = 5, z = 4
+------------------------------
+EntityID = 0 Has Transform Component With Data >> x = 20, y = 50, z = 30
+EntityID = 1 Has Transform Component With Data >> x = 2, y = 5, z = 4
+------------------------------
+Press any key to continue . . .
+...
