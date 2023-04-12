@@ -45,7 +45,9 @@ int main()
 	reg.AddComponent<TransformComponent>(e2, 2.0f, 5.0f, 4.0f); // Replace
 
 	// DestryEntity
-	reg.DestroyEntity(e1);
+	bool destroy = false;
+	if (destroy)
+		reg.DestroyEntity(e1);
 	
 	// Has Componenet
 	bool has = reg.HasComponent<SpriteRendererComponent>(e1);
