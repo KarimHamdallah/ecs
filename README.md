@@ -20,6 +20,10 @@ I will update it instantly.
 - Add Systems and Required Componenets For These Systems.
 - Testing it in real game engine or game.
 
+**CurrentDesign:**
+![ecs](/ECS/assets/CurrentDesign.png?raw=true)
+**FutureDesign (Archetypes):**
+![ecs](/ECS/assets/FutureDesign.png?raw=true)
 
 **HOW TO USE IT:**
 ```c++
