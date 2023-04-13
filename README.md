@@ -188,11 +188,14 @@ if you want to add another component like rigidbody for example you can use regi
 
 Archetype Solution: By using Archetypes We loop through only 2 entities having both TransformComponent and SpriteRendererComponent.
 
-Easy..
+Easy...
+
+**Archtype Problem**
+- You Have To Use Archetypes for every entity in ur scene you need to query for, so that entites which have components added without archetypes will not included in query, but that not problem at all as 90% of time we query for having one specific component and 10% of times we query for more than one component which we can use archetypes for these specific cases.
 
    ** Archetype Example **
    ```c++
-        EntityID e4 = reg.CreatEntity();
+    EntityID e4 = reg.CreatEntity();
 	EntityID e5 = reg.CreatEntity();
 	EntityID e6 = reg.CreatEntity();
 	EntityID e7 = reg.CreatEntity();
