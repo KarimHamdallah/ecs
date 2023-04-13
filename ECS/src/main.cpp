@@ -29,7 +29,6 @@ struct RigidBodyComponent : Component
 	float gravity = 9.8f;
 };
 
-
 int main()
 {
 	// Creat Registry
@@ -43,6 +42,53 @@ int main()
 	reg.AddComponent<SpriteRendererComponent>(e1, 1.0f, 0.0f, 0.0f, 1.0f);
 	reg.AddComponent<TransformComponent>(e2, 2.0f, 5.0f, 3.0f); // Add
 	reg.AddComponent<TransformComponent>(e2, 2.0f, 5.0f, 4.0f); // Replace
+
+	/*
+	* Using Archetypes
+	*/
+
+	EntityID e4 = reg.CreatEntity();
+	EntityID e5 = reg.CreatEntity();
+	EntityID e6 = reg.CreatEntity();
+	EntityID e7 = reg.CreatEntity();
+
+	ArchetypeSystem<TransformComponent, SpriteRendererComponent> transf_sprrend_archetype(reg);
+	transf_sprrend_archetype.AddFirstComponents(e4, 20.0f, 30.0, 40.0f);
+	transf_sprrend_archetype.AddSecondComponents(e4, 1.0f, 0.0, 0.0f, 1.0f);
+	reg.AddComponent<RigidBodyComponent>(e4, 9.8f);
+
+	transf_sprrend_archetype.AddFirstComponents(e5, 12.0f, 21.0, 11.0f);
+	transf_sprrend_archetype.AddSecondComponents(e5, 0.0f, 1.0, 0.0f, 1.0f);
+
+	transf_sprrend_archetype.AddFirstComponents(e6, 70.0f, 18.0, 350.0f);
+	transf_sprrend_archetype.AddSecondComponents(e6, 0.0f, 0.0, 1.0f, 1.0f);
+
+	transf_sprrend_archetype.AddFirstComponents(e7, 20.0f, 30.0, 40.0f);
+	transf_sprrend_archetype.AddSecondComponents(e7, 1.0f, 0.0, 0.0f, 1.0f);
+
+	//transf_sprrend_archetype.RemoveComponenet(e4, ComponentPos::FIRST_COMPONENT);
+
+
+	{// Query With Archetypes
+		for (EntityID entityid : transf_sprrend_archetype)
+		{
+			auto&[transform, spriterenderer] = transf_sprrend_archetype.get(entityid);
+			std::cout << "EntityID = " << entityid << " Has Transform Component With Data >> ";
+			std::cout << "x = " << transform.x << ", y = " << transform.y << ", z = " << transform.z << "\n";
+			std::cout << "EntityID = " << entityid << " Has SpriteRenderer Component With Data >> ";
+			std::cout << "Color : r = " << spriterenderer.r << ", g = " << spriterenderer.g << ", b = " << spriterenderer.b << ", a = " << spriterenderer.a << "\n";
+			std::cout << "--------\n";
+		}
+	}
+
+
+
+
+
+
+
+
+
 
 	// DestryEntity
 	bool destroy = false;

@@ -169,3 +169,61 @@ EntityID = 1 Has Transform Component With Data >> x = 2, y = 5, z = 4
 ------------------------------
 Press any key to continue . . .
 ```
+
+
+**WhatIsArchetypes**
+- Let's Assume We Have 1000000 Entities in our secne and 1000 of them having TransformComponent and 500 of them having SpriteRendererComponent
+  and we need to loop throught all entities that have both componenets.
+FirstSolution: my friend mike is a stuipid programmer who suggests to creat entity group of all entites that have TransformComponent and at every loop we can confirm if it has SpriteRendererComponent or not by using HasComponent<SpriteRendererComponent>(entityid) function. in this case mike will loop through 1000 entities.
+FirstSolution: my friend jason is a smart programmer who suggests to creat entity group of all entites that have SpriteRendererComponent and at every loop we can confirm if it has TransformComponent or not by using HasComponent<TransformComponent>(entityid) function. in this case mike will loop through 500 entities.
+
+But Wait....
+
+we have only 2 entities which have both TransformComponent and SpriteRendererComponent.
+
+Hmmmm....... Shit.
+
+Don't Be Upset, We Introduce you To Components Archetypes, Which is a table of entities that have a specific set of componenets.
+so if we need to creat entity and Add to it both TransformComponent and SpriteRendererComponent, you can creat Archetype Table for Theses Componenets and use this archetype to add and remove these componenets to these objects. by this way you make sure that our Archetype Holds All Entities having both of these componenets.
+if you want to add another component like rigidbody for example you can use registry no problem.
+
+Archetype Solution: By using Archetypes We loop through only 2 entities having both TransformComponent and SpriteRendererComponent.
+
+Easy..
+
+   ** Archetype Example **
+   ```c++
+      EntityID e4 = reg.CreatEntity();
+	EntityID e5 = reg.CreatEntity();
+	EntityID e6 = reg.CreatEntity();
+	EntityID e7 = reg.CreatEntity();
+
+	ArchetypeSystem<TransformComponent, SpriteRendererComponent> transf_sprrend_archetype(reg);
+	transf_sprrend_archetype.AddFirstComponents(e4, 20.0f, 30.0, 40.0f);
+	transf_sprrend_archetype.AddSecondComponents(e4, 1.0f, 0.0, 0.0f, 1.0f);
+	reg.AddComponent<RigidBodyComponent>(e4, 9.8f);
+
+	transf_sprrend_archetype.AddFirstComponents(e5, 12.0f, 21.0, 11.0f);
+	transf_sprrend_archetype.AddSecondComponents(e5, 0.0f, 1.0, 0.0f, 1.0f);
+
+	transf_sprrend_archetype.AddFirstComponents(e6, 70.0f, 18.0, 350.0f);
+	transf_sprrend_archetype.AddSecondComponents(e6, 0.0f, 0.0, 1.0f, 1.0f);
+
+	transf_sprrend_archetype.AddFirstComponents(e7, 20.0f, 30.0, 40.0f);
+	transf_sprrend_archetype.AddSecondComponents(e7, 1.0f, 0.0, 0.0f, 1.0f);
+
+	//transf_sprrend_archetype.RemoveComponenet(e4, ComponentPos::FIRST_COMPONENT);
+
+
+	{// Query With Archetypes
+		for (EntityID entityid : transf_sprrend_archetype)
+		{
+			auto&[transform, spriterenderer] = transf_sprrend_archetype.get(entityid);
+			std::cout << "EntityID = " << entityid << " Has Transform Component With Data >> ";
+			std::cout << "x = " << transform.x << ", y = " << transform.y << ", z = " << transform.z << "\n";
+			std::cout << "EntityID = " << entityid << " Has SpriteRenderer Component With Data >> ";
+			std::cout << "Color : r = " << spriterenderer.r << ", g = " << spriterenderer.g << ", b = " << spriterenderer.b << ", a = " << spriterenderer.a << "\n";
+			std::cout << "--------\n";
+		}
+      }
+   ```

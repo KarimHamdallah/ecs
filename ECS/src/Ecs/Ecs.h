@@ -47,6 +47,32 @@ private:
 	std::unordered_map<EntityID, std::shared_ptr<Component>> map;
 };
 
+
+class Archetype
+{
+public:
+	Archetype() = default;
+
+	void AddTo(EntityID entity)
+	{
+		m_Archetype.push_back(entity);
+	}
+	
+	void Erase(EntityID entity)
+	{
+		auto it = std::find(m_Archetype.begin(), m_Archetype.end(), entity);
+		m_Archetype.erase(it);
+	}
+	
+	
+	std::vector<EntityID>::iterator begin() { return m_Archetype.begin(); }
+	std::vector<EntityID>::iterator end() { return m_Archetype.end(); }
+private:
+	std::vector<EntityID> m_Archetype;
+};
+
+
+
 class Registry
 {
 public:
@@ -82,6 +108,13 @@ public:
 		//------- Get Component -------------
 		ECS_ASSERT(it != Components[comp_id].end(), "Entity Dosen't Have Component!");
 		return *static_cast<T*>(it->second.get());
+	}
+
+	template<typename T>
+	inline T& GetComponentWithoutAssertion(EntityID Entity)
+	{
+		ComponentID comp_id = GetComponentTypeID<T>();
+		return *static_cast<T*>(Components.at(comp_id).at(Entity).get());
 	}
 
 	template<typename T>
@@ -136,4 +169,66 @@ private:
 	std::size_t EntityCounter = 0;
 	std::unordered_map<ComponentID, std::unordered_map<EntityID, std::shared_ptr<Component>>> Components;
 	std::vector<std::shared_ptr<System>> Systems;
+};
+
+/*
+* Archetypes
+*/
+
+enum class ComponentPos
+{
+	FIRST_COMPONENT = 0,
+	SECOND_COMPONENT
+};
+
+template<typename T1, typename T2>
+class ArchetypeSystem
+{
+public:
+	ArchetypeSystem(Registry& reg)
+		: reg(reg) {}
+
+	template<typename... Args>
+	inline void AddFirstComponents(EntityID entity, Args&&... args)
+	{
+		reg.AddComponent<T1>(entity, std::forward<Args>(args)...);
+		if (reg.HasComponent<T2>(entity))
+			archetype.AddTo(entity);
+	}
+
+	template<typename... Args>
+	inline void AddSecondComponents(EntityID entity, Args&&... args)
+	{
+		reg.AddComponent<T2>(entity, std::forward<Args>(args)...);
+		if (reg.HasComponent<T1>(entity))
+			archetype.AddTo(entity);
+	}
+
+	inline void RemoveComponenet(EntityID entity, ComponentPos WhichComponenet)
+	{
+		switch (WhichComponenet)
+		{
+		case ComponentPos::FIRST_COMPONENT: reg.RemoveComponent<T1>(entity); break;
+		case ComponentPos::SECOND_COMPONENT: reg.RemoveComponent<T2>(entity); break;
+		default: break;
+		}
+
+		archetype.Erase(entity);
+	}
+
+	std::vector<EntityID>::iterator begin() { return archetype.begin(); }
+	std::vector<EntityID>::iterator end() { return archetype.end(); }
+
+
+	std::pair<T1&, T2&> get(EntityID Entity)
+	{
+		T1& FirstComponent = reg.GetComponentWithoutAssertion<T1>(Entity);
+		T2& SecondComponent = reg.GetComponentWithoutAssertion<T2>(Entity);
+
+		return { FirstComponent, SecondComponent };
+	}
+
+private:
+	Registry& reg;
+	Archetype archetype;
 };
