@@ -193,7 +193,7 @@ Easy...
 **ARCHETYPE PROBLEM**
 - You Have To Use Archetypes for every entity in ur scene you need to query for, so that entites which have components added without archetypes will not included in query, but that not be problem at all as 90% of time we query for having one specific component and 10% of times we query for more than one component which we can use archetypes for these specific cases.
 
-**ARCHETYPE EXAMPLE**
+**ARCHETYPE EXAMPLE:**
    ```c++
     EntityID e4 = reg.CreatEntity();
 	EntityID e5 = reg.CreatEntity();
