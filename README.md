@@ -173,8 +173,8 @@ Press any key to continue . . .
 
 **What Is Archetypes**
 - Let's Assume We Have 1000000 Entities in our secne and 1000 of them having TransformComponent and 500 of them having SpriteRendererComponent and we need to loop throught all entities that have both componenets.
-FirstSolution: my friend mike is a stuipid programmer who suggests to creat entity group of all entites that have TransformComponent and at every loop we can confirm if it has SpriteRendererComponent or not by using HasComponent<SpriteRendererComponent>(entityid) function. in this case mike will loop through 1000 entities.
-FirstSolution: my friend jason is a smart programmer who suggests to creat entity group of all entites that have SpriteRendererComponent and at every loop we can confirm if it has TransformComponent or not by using HasComponent<TransformComponent>(entityid) function. in this case mike will loop through 500 entities.
+* First Solution: my friend mike is a stuipid programmer who suggests to creat entity group of all entites that have TransformComponent and at every loop we can confirm if it has SpriteRendererComponent or not by using HasComponent<SpriteRendererComponent>(entityid) function. in this case mike will loop through 1000 entities.
+* Second Solution: my friend jason is a smart programmer who suggests to creat entity group of all entites that have SpriteRendererComponent and at every loop we can confirm if it has TransformComponent or not by using HasComponent<TransformComponent>(entityid) function. in this case mike will loop through 500 entities.
 
 But Wait....
 
