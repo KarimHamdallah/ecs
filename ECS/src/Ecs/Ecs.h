@@ -191,7 +191,8 @@ public:
 	template<typename... Args>
 	inline void AddFirstComponents(EntityID entity, Args&&... args)
 	{
-		reg.AddComponent<T1>(entity, std::forward<Args>(args)...);
+		if (!reg.HasComponent<T1>(entity))
+			reg.AddComponent<T1>(entity, std::forward<Args>(args)...);
 		if (reg.HasComponent<T2>(entity))
 			archetype.AddTo(entity);
 	}
@@ -199,7 +200,8 @@ public:
 	template<typename... Args>
 	inline void AddSecondComponents(EntityID entity, Args&&... args)
 	{
-		reg.AddComponent<T2>(entity, std::forward<Args>(args)...);
+		if (!reg.HasComponent<T2>(entity))
+			reg.AddComponent<T2>(entity, std::forward<Args>(args)...);
 		if (reg.HasComponent<T1>(entity))
 			archetype.AddTo(entity);
 	}
