@@ -12,73 +12,106 @@ I will update it instantly.
 - AddOrReplaceComponent.
 - RemoveComponent.
 - HasComponent.
-- 3 Different Ways To Query For Specific Component.
-
-**FUTURE PALN:**
+- 3 Different Ways To Query For Specific Component/Components  <get<T>, group<T1,T2>, do_for<T>>.
 - Make Query More Faster By Using Components Archetypes.
 - Add Query For More Than One Componenet.
+
+**FUTURE PALN:**
 - Add Systems and Required Componenets For These Systems.
 - Testing it in real game engine or game.
 
-**CurrentDesign:**
+**OldDesign:**
 ![ecs](/ECS/assets/CurrentDesign.png?raw=true)
 
 **FutureDesign (Archetypes):**
 ![ecs](/ECS/assets/FutureDesign.png?raw=true)
+
+**CurrentDesign (Mix Between Archetypes & HashMaps):**
+this make it easier to set Signatures Into Archetypes and get entities ids from looping through Archetypes.
+example : group<TransformComponent, SpriteRendererComponent>  >> return set of <uint32_t> each one is an entity index which have both TransformComponent and SpriteRendererComponent.
+we can use these indices to get components from registry hash maps without looping through all registry entities or hash tables of both components. 
 
 **HOW TO USE IT:**
 ```c++
 #include <iostream>
 #include "Ecs/Ecs.h"
 
-// Setup Componenets
 struct TransformComponent : Component
 {
+public:
 	TransformComponent() = default;
+	TransformComponent(TransformComponent&) = default;
 	TransformComponent(float x, float y, float z)
 		: x(x), y(y), z(z) {}
 
-	float x, y, z;
+	float x, y, z = 0.0f;
+
+
+	static ComponentType GetType() { return ComponentType::TransformComponent; }
 };
 
 struct SpriteRendererComponent : Component
 {
+public:
 	SpriteRendererComponent() = default;
-	SpriteRendererComponent(float r, float g, float b, float a)
-		: r(r), g(g), b(b), a(a) {}
+	SpriteRendererComponent(SpriteRendererComponent&) = default;
+	SpriteRendererComponent(float r, float g, float b)
+		: r(r), g(g), b(b) {}
 
-	float r, g, b, a;
+	float r, g, b = 1.0f;
+
+
+	static ComponentType GetType() { return ComponentType::SpriteRendererComponent; }
+};
+
+struct TextRendererComponent : Component
+{
+public:
+	TextRendererComponent() = default;
+	TextRendererComponent(TextRendererComponent&) = default;
+	TextRendererComponent(const std::string& text)
+		: text(text) {}
+
+	std::string text = "";
+
+
+	static ComponentType GetType() { return ComponentType::TextRendererComponent; }
 };
 
 struct RigidBodyComponent : Component
 {
+public:
 	RigidBodyComponent() = default;
+	RigidBodyComponent(RigidBodyComponent&) = default;
 	RigidBodyComponent(float gravity)
 		: gravity(gravity) {}
 
-	float gravity = 9.8f;
-};
+	float gravity = 0.0f;
 
+
+	static ComponentType GetType() { return ComponentType::RigidBodyComponent; }
+};
 
 int main()
 {
 	// Creat Registry
 	Registry reg;
 	// Creat Entity
-	EntityID e1 = reg.CreatEntity();
-	EntityID e2 = reg.CreatEntity();
-	EntityID e3 = reg.CreatEntity();
+	Entity e1 = reg.CreateEntity();
+	Entity e2 = reg.CreateEntity();
+	Entity e3 = reg.CreateEntity();
+
 	// Add Componenet Or ReplaceComponenet If Present
 	reg.AddComponent<TransformComponent>(e1, 20.0f, 50.0f, 30.0f);
-	reg.AddComponent<SpriteRendererComponent>(e1, 1.0f, 0.0f, 0.0f, 1.0f);
+	reg.AddComponent<SpriteRendererComponent>(e1, 1.0f, 0.0f, 0.0f);
 	reg.AddComponent<TransformComponent>(e2, 2.0f, 5.0f, 3.0f); // Add
 	reg.AddComponent<TransformComponent>(e2, 2.0f, 5.0f, 4.0f); // Replace
 
 	// DestryEntity
 	bool destroy = false;
 	if (destroy)
-		reg.DestroyEntity(e1);
-	
+		reg.RemoveEntity(e1);
+
 	// Has Componenet
 	bool has = reg.HasComponent<SpriteRendererComponent>(e1);
 	std::cout << "Entity With ID " << e1 << " " << (has ? ("Has") : ("Hasn't")) << " SpriteRendererComponenet\n";
@@ -86,54 +119,33 @@ int main()
 	// Get Componenet
 	if (has)
 	{
-		SpriteRendererComponent& spriterenderer = reg.GetComponent<SpriteRendererComponent>(e1);
-		std::cout << "Color : r = " << spriterenderer.r << ", g = " << spriterenderer.g << ", b = " << spriterenderer.b << ", a = " << spriterenderer.a << "\n";
+		SpriteRendererComponent& spriterenderer = *reg.GetComponent<SpriteRendererComponent>(e1);
+		std::cout << "Color : r = " << spriterenderer.r << ", g = " << spriterenderer.g << ", b = " << spriterenderer.b << "\n";
 	}
 	std::cout << "------------------------------\n";
 
 
 	// Remove Component
 	bool remove = false;
-	if(remove)
+	if (remove)
 		reg.RemoveComponent<TransformComponent>(e2);
 
 	// Query
 
 	{ // Get All Entities That Have Transform Components and print EntityID With It's Transform Componenet Data
-		EntityGroup group = reg.get_group<TransformComponent>();
-		for (auto& [entityid, comp] : group)
+		auto group = reg.get<TransformComponent>();
+		for (Entity entity : group)
 		{
-			TransformComponent& transform = *static_cast<TransformComponent*>(comp.get());
-			std::cout << "EntityID = " << entityid << " Has Transform Component With Data >> ";
+			TransformComponent& transform = *reg.GetComponent<TransformComponent>(entity);
+			std::cout << "EntityID = " << entity << " Has Transform Component With Data >> ";
 			std::cout << "x = " << transform.x << ", y = " << transform.y << ", z = " << transform.z << "\n";
-		}
-	}
-
-	std::cout << "------------------------------\n";
-
-	{ // Get All Entities That Have Transform Components and print EntityID With It's Transform Componenet Data
-		EntityGroup group = reg.get_group<TransformComponent>();
-		for (auto entity : group)
-		{
-			auto& [entityid, transform] = group.get<TransformComponent>(entity);
-			std::cout << "EntityID = " << entityid << " Has Transform Component With Data >> ";
-			std::cout << "x = " << transform.x << ", y = " << transform.y << ", z = " << transform.z << "\n";
-
-			// Examples From My Game Engine(SnapEngine) -- Inside My Scene->Render();
-			/*
-			   if(reg.HasComponenet<SpriteRendererComponenet>())
-			   {
-			      auto& sprite_renderer = reg.GetComponenet<SpriteRendererComponenet>(Entity_id);
-			      Renderer::DrawSprite(transform, sprite_renderer);
-			   }
-			*/
 		}
 	}
 
 	std::cout << "------------------------------\n";
 
 	{// Do This Function For All Entities That Have Transform Component
-		reg.do_for<TransformComponent>([&](EntityID Entity_id, TransformComponent& transform)
+		reg.do_for<TransformComponent>([&](Entity Entity_id, TransformComponent& transform)
 			{
 				std::cout << "EntityID = " << Entity_id << " Has Transform Component With Data >> ";
 				std::cout << "x = " << transform.x << ", y = " << transform.y << ", z = " << transform.z << "\n";
@@ -164,17 +176,14 @@ EntityID = 1 Has Transform Component With Data >> x = 2, y = 5, z = 4
 EntityID = 0 Has Transform Component With Data >> x = 20, y = 50, z = 30
 EntityID = 1 Has Transform Component With Data >> x = 2, y = 5, z = 4
 ------------------------------
-EntityID = 0 Has Transform Component With Data >> x = 20, y = 50, z = 30
-EntityID = 1 Has Transform Component With Data >> x = 2, y = 5, z = 4
-------------------------------
 Press any key to continue . . .
 ```
 
 
 **WHAT IS ARCHTYPES**
 - Let's Assume We Have 1000000 Entities in our secne and 1000 of them having TransformComponent and 500 of them having SpriteRendererComponent and we need to loop throught all entities that have both componenets:
-* First Solution: my friend mike is a stuipid programmer who suggests to creat entity group of all entites that have TransformComponent and at every loop we can confirm if it has SpriteRendererComponent or not by using HasComponent<SpriteRendererComponent>(entityid) function. in this case mike will loop through 1000 entities.
-* Second Solution: my friend jason is a smart programmer who suggests to creat entity group of all entites that have SpriteRendererComponent and at every loop we can confirm if it has TransformComponent or not by using HasComponent<TransformComponent>(entityid) function. in this case jason will loop through 500 entities.
+* First Solution: some one may suggests to creat entity group of all entites that have TransformComponent and at every loop we can confirm if it has SpriteRendererComponent or not by using HasComponent<SpriteRendererComponent>(entityid) function. in this case he will loop through 1000 entities.
+* Second Solution: another one may suggests to creat entity group of all entites that have SpriteRendererComponent and at every loop we can confirm if it has TransformComponent or not by using HasComponent<TransformComponent>(entityid) function. in this case he will loop through 500 entities.
 
 But Wait....
 
@@ -190,42 +199,4 @@ Archetype Solution: By using Archetypes We loop through only 2 entities having b
 
 Easy...
 
-**ARCHETYPE PROBLEM**
-- You Have To Use Archetypes for every entity in ur scene you need to query for, so that entites which have components added without archetypes will not included in query, but that not be problem at all as 90% of time we query for having one specific component and 10% of times we query for more than one component which we can use archetypes for these specific cases.
-
-**ARCHETYPE EXAMPLE:**
-   ```c++
-    EntityID e4 = reg.CreatEntity();
-	EntityID e5 = reg.CreatEntity();
-	EntityID e6 = reg.CreatEntity();
-	EntityID e7 = reg.CreatEntity();
-
-	ArchetypeSystem<TransformComponent, SpriteRendererComponent> transf_sprrend_archetype(reg);
-	transf_sprrend_archetype.AddFirstComponents(e4, 20.0f, 30.0, 40.0f);
-	transf_sprrend_archetype.AddSecondComponents(e4, 1.0f, 0.0, 0.0f, 1.0f);
-	reg.AddComponent<RigidBodyComponent>(e4, 9.8f);
-
-	transf_sprrend_archetype.AddFirstComponents(e5, 12.0f, 21.0, 11.0f);
-	transf_sprrend_archetype.AddSecondComponents(e5, 0.0f, 1.0, 0.0f, 1.0f);
-
-	transf_sprrend_archetype.AddFirstComponents(e6, 70.0f, 18.0, 350.0f);
-	transf_sprrend_archetype.AddSecondComponents(e6, 0.0f, 0.0, 1.0f, 1.0f);
-
-	transf_sprrend_archetype.AddFirstComponents(e7, 20.0f, 30.0, 40.0f);
-	transf_sprrend_archetype.AddSecondComponents(e7, 1.0f, 0.0, 0.0f, 1.0f);
-
-	//transf_sprrend_archetype.RemoveComponenet(e4, ComponentPos::FIRST_COMPONENT);
-
-
-	{// Query With Archetypes
-		for (EntityID entityid : transf_sprrend_archetype)
-		{
-			auto&[transform, spriterenderer] = transf_sprrend_archetype.get(entityid);
-			std::cout << "EntityID = " << entityid << " Has Transform Component With Data >> ";
-			std::cout << "x = " << transform.x << ", y = " << transform.y << ", z = " << transform.z << "\n";
-			std::cout << "EntityID = " << entityid << " Has SpriteRenderer Component With Data >> ";
-			std::cout << "Color : r = " << spriterenderer.r << ", g = " << spriterenderer.g << ", b = " << spriterenderer.b << ", a = " << spriterenderer.a << "\n";
-			std::cout << "--------\n";
-		}
-      }
-   ```
+our ecs now has dynamic archetype tables that represents all entities having same signature (Special Set Of Components).
