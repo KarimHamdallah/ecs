@@ -30,7 +30,7 @@ I will update it instantly.
 
 this make it easier to set Signatures Into Archetypes and get entities ids from looping through Archetypes.
 
-*for example* : group<TransformComponent, SpriteRendererComponent>  >> return set of <uint32_t> each one is an entity index which have both TransformComponent and SpriteRendererComponent, then we can use these indices to get components from registry hash maps without looping through all registry entities or hash tables of both components.
+*for example* : group<TransformComponent, SpriteRendererComponent> --> return set of <uint32_t> each one is an entity index which have both TransformComponent and SpriteRendererComponent, then we can use these indices to get components from registry hash maps without looping through all registry entities or hash tables of both components.
 
 **HOW TO USE IT:**
 ```c++
