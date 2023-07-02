@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <set>
 #include <list>
+#include <functional>
 #include <memory>
 
 namespace
@@ -17,7 +18,7 @@ enum class ComponentType
 	TransformComponent = 0,
 	SpriteRendererComponent,
 	TextRendererComponent,
-	FinalCount
+	RigidBodyComponent
 };
 
 using EntitySignature = std::bitset<64>;
@@ -197,6 +198,36 @@ public:
 	}
 
 
+	template<typename T>
+	std::set<Entity> get()
+	{
+		std::set<Entity> ret;
+
+		int Type = (int)T::GetType();
+
+		for (auto& pair : Archetypes)
+		{
+			if (pair.first.test(Type))
+			{
+				const std::set<Entity>& set = pair.second.GetSet();
+				ret.insert(set.begin(), set.end());
+			}
+		}
+
+		return ret;
+	}
+
+	template<typename T>
+	void do_for(std::function<void(Entity, T&)> func)
+	{
+		auto group = this->get<T>();
+		for (Entity entity : group)
+		{
+			func(entity, *this->GetComponent<T>(entity));
+		}
+	}
+
+
 	template<typename T1, typename T2>
 	std::set<Entity> group()
 	{
@@ -349,4 +380,18 @@ public:
 
 
 	static ComponentType GetType() { return ComponentType::TextRendererComponent; }
+};
+
+struct RigidBodyComponent : Component
+{
+public:
+	RigidBodyComponent() = default;
+	RigidBodyComponent(RigidBodyComponent&) = default;
+	RigidBodyComponent(float gravity)
+		: gravity(gravity) {}
+
+	float gravity = 0.0f;
+
+
+	static ComponentType GetType() { return ComponentType::RigidBodyComponent; }
 };
