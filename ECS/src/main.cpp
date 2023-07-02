@@ -3,42 +3,70 @@
 
 int main()
 {
-	Registry registry;
+	// Creat Registry
+	Registry reg;
+	// Creat Entity
+	Entity e1 = reg.CreateEntity();
+	Entity e2 = reg.CreateEntity();
+	Entity e3 = reg.CreateEntity();
 
-	Entity e1 = registry.CreateEntity();
-	Entity e2 = registry.CreateEntity();
-	Entity e3 = registry.CreateEntity();
-	Entity e4 = registry.CreateEntity();
+	// Add Componenet Or ReplaceComponenet If Present
+	reg.AddComponent<TransformComponent>(e1, 20.0f, 50.0f, 30.0f);
+	reg.AddComponent<SpriteRendererComponent>(e1, 1.0f, 0.0f, 0.0f);
+	reg.AddComponent<TransformComponent>(e2, 2.0f, 5.0f, 3.0f); // Add
+	reg.AddComponent<TransformComponent>(e2, 2.0f, 5.0f, 4.0f); // Replace
 
-	registry.AddComponent<TextRendererComponent>(e1, "Karim");
-	registry.AddComponent<SpriteRendererComponent>(e2, 1, 1, 0);
-	registry.AddComponent<TransformComponent>(e1, 5, 3, 2);
-	registry.AddComponent<SpriteRendererComponent>(e3, 1, 0, 1);
-	registry.AddComponent<SpriteRendererComponent>(e4, 1, 0, 1);
-	registry.AddComponent<TransformComponent>(e3, 6, 2, 9);
-	registry.AddComponent<SpriteRendererComponent>(e1, 0, 1, 1);
-	registry.AddComponent<TransformComponent>(e2, 1, 3, 8);
-	registry.AddComponent<TransformComponent>(e4, 6, 2, 9);
+	// DestryEntity
+	bool destroy = false;
+	if (destroy)
+		reg.RemoveEntity(e1);
 
+	// Has Componenet
+	bool has = reg.HasComponent<SpriteRendererComponent>(e1);
+	std::cout << "Entity With ID " << e1 << " " << (has ? ("Has") : ("Hasn't")) << " SpriteRendererComponenet\n";
 
-	bool e1_has_transform = registry.HasComponent<TransformComponent>(e1); // true
-	TransformComponent* tranf_e1 = registry.GetComponent<TransformComponent>(e1);
-	std::cout << "e1 transform : " << tranf_e1->x << " , " << tranf_e1->y << " , " << tranf_e1->z << "\n";
-	registry.RemoveComponent<SpriteRendererComponent>(e1);
-	e1_has_transform = registry.HasComponent<TransformComponent>(e1); // false
-
-	registry.RemoveEntity(e1);
-
-	Entity e5 = registry.CreateEntity();
-	registry.AddComponent<TransformComponent>(e5, 5, 5, 5);
-	registry.AddComponent<SpriteRendererComponent>(e5, 1.0f, 1.0f, 1.0f);
-
-	const auto& group = registry.group<TransformComponent, SpriteRendererComponent>();
-	for (Entity e : group)
+	// Get Componenet
+	if (has)
 	{
-		std::cout << e << " ";
+		SpriteRendererComponent& spriterenderer = *reg.GetComponent<SpriteRendererComponent>(e1);
+		std::cout << "Color : r = " << spriterenderer.r << ", g = " << spriterenderer.g << ", b = " << spriterenderer.b << "\n";
 	}
-	std::cout << "\n";
+	std::cout << "------------------------------\n";
+
+
+	// Remove Component
+	bool remove = false;
+	if (remove)
+		reg.RemoveComponent<TransformComponent>(e2);
+
+	// Query
+
+	{ // Get All Entities That Have Transform Components and print EntityID With It's Transform Componenet Data
+		auto group = reg.get<TransformComponent>();
+		for (Entity entity : group)
+		{
+			TransformComponent& transform = *reg.GetComponent<TransformComponent>(entity);
+			std::cout << "EntityID = " << entity << " Has Transform Component With Data >> ";
+			std::cout << "x = " << transform.x << ", y = " << transform.y << ", z = " << transform.z << "\n";
+		}
+	}
+
+	std::cout << "------------------------------\n";
+
+	{// Do This Function For All Entities That Have Transform Component
+		reg.do_for<TransformComponent>([&](Entity Entity_id, TransformComponent& transform)
+			{
+				std::cout << "EntityID = " << Entity_id << " Has Transform Component With Data >> ";
+				std::cout << "x = " << transform.x << ", y = " << transform.y << ", z = " << transform.z << "\n";
+
+				// Examples From My Game Engine(SnapEngine) -- Inside My UI->Render(); & Serializer->SerializerScene();
+				/*
+				   UI::DrawFloat3("Position", &transform.x, &transform.y, &transform.z);
+				   Serializer::SerializerTransformComponenet(Entity_id, transform);
+				*/
+			});
+	}
+
 
 	std::cout << "------------------------------\n";
 
