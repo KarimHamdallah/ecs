@@ -1,236 +1,352 @@
 #include <vector>
+#include <bitset>
 #include <unordered_map>
-#include <unordered_set>
+#include <set>
+#include <list>
 #include <memory>
-#include <atomic>
 
-#define ECS_ASSERT(cond, msg) do{ if(cond){} else { std::cerr << msg << "\n"; __debugbreak(); } }while(0)
+namespace
+{
+	uint32_t MaxEntityCount = 1000;
+}
 
-
-using EntityID = std::size_t;
-using ComponentID = std::size_t;
-
-class System {};
+using Entity = uint32_t;
 class Component {};
-
-inline ComponentID GetUniqueComponentTypeID()
+enum class ComponentType
 {
-	static std::atomic<std::size_t> ComponentTypeID = 0u;
-	return ComponentTypeID++;
-}
-
-template<typename T>
-inline ComponentID GetComponentTypeID()
-{
-	bool IsComponent = (std::is_base_of<Component, T>::value);
-	ECS_ASSERT(IsComponent, "Passed Type Is Not A Component!");
-	static const ComponentID TypeID = GetUniqueComponentTypeID();
-	return TypeID;
-}
-
-
-struct EntityGroup
-{
-	EntityGroup() = default;
-	EntityGroup(const std::unordered_map<EntityID, std::shared_ptr<Component>>& MapRef)
-		: map(MapRef) {}
-
-	template<typename T>
-	inline std::pair<EntityID, T&> get(const std::pair< EntityID, std::shared_ptr<Component>>& Slot)
-	{
-		return { Slot.first, *static_cast<T*>(map.at(Slot.first).get()) };
-	}
-
-	std::unordered_map<EntityID, std::shared_ptr<Component>>::iterator begin() { return map.begin(); }
-	std::unordered_map<EntityID, std::shared_ptr<Component>>::iterator end() { return map.end(); }
-private:
-	std::unordered_map<EntityID, std::shared_ptr<Component>> map;
+	TransformComponent = 0,
+	SpriteRendererComponent,
+	TextRendererComponent,
+	FinalCount
 };
 
+using EntitySignature = std::bitset<64>;
+using ArchetypeLayout = std::bitset<64>;
 
 class Archetype
 {
 public:
 	Archetype() = default;
+	void PushEntity(Entity e) { m_Entities.insert(e); }
+	void RemoveEntity(Entity e) { m_Entities.erase(e); }
 
-	void AddTo(EntityID entity)
-	{
-		m_Archetype.push_back(entity);
-	}
-	
-	void Erase(EntityID entity)
-	{
-		auto it = std::find(m_Archetype.begin(), m_Archetype.end(), entity);
-		m_Archetype.erase(it);
-	}
-	
-	
-	std::vector<EntityID>::iterator begin() { return m_Archetype.begin(); }
-	std::vector<EntityID>::iterator end() { return m_Archetype.end(); }
+	std::set<Entity>::iterator begin() { return m_Entities.begin(); }
+	std::set<Entity>::iterator end() { return m_Entities.end(); }
+
+	bool isEmpty() { return m_Entities.size() == 0; }
+	const std::set<Entity>& GetSet() { return m_Entities; }
+
 private:
-	std::vector<EntityID> m_Archetype;
+	std::set<Entity> m_Entities;
 };
-
-
 
 class Registry
 {
 public:
 	Registry() = default;
-	EntityID CreatEntity() { return EntityCounter++; }
-
-	template<typename T>
-	inline bool HasComponent(EntityID Entity)
+	Entity CreateEntity()
 	{
-		ComponentID comp_id = GetComponentTypeID<T>();
-		auto it = Components[comp_id].find(Entity);
-		return it != Components[comp_id].end();
+		if (!RemovedEntities.empty())
+		{
+			uint32_t id = RemovedEntities.front();
+			RemovedEntities.pop_front();
+			return id;
+		}
+		return EntityCounter++;
 	}
 
-	/*
-    Add Component Will override Component If Already The Same Component Type Added Before
-    */
 	template<typename T, typename... Args>
-	inline void AddComponent(EntityID Entity, Args&&... args)
+	void AddComponent(Entity entity, Args&&... args)
 	{
-		//ECS_ASSERT(!HasComponent<T>(Entity), "Entity Already Has Component!");
-		auto Component = std::make_shared<T>(std::forward<Args>(args)...);
-		ComponentID comp_id = GetComponentTypeID<T>();
-		Components[comp_id][Entity] = Component;
-	}
+		// Assert If T is A Component
+		static_assert(std::is_base_of<Component, T>::value, "T is not a Component");
+		
+		ComponentType ComponentType = T::GetType();
 
-	template<typename T>
-	inline T& GetComponent(EntityID Entity)
-	{
-		//------- Has Component -------------
-		ComponentID comp_id = GetComponentTypeID<T>();
-		auto it = Components[comp_id].find(Entity);
-		//------- Get Component -------------
-		ECS_ASSERT(it != Components[comp_id].end(), "Entity Dosen't Have Component!");
-		return *static_cast<T*>(it->second.get());
-	}
+		// Creat Component
+		std::shared_ptr<T> Comp = std::make_shared<T>(std::forward<Args>(args)...);
 
-	template<typename T>
-	inline T& GetComponentWithoutAssertion(EntityID Entity)
-	{
-		ComponentID comp_id = GetComponentTypeID<T>();
-		return *static_cast<T*>(Components.at(comp_id).at(Entity).get());
-	}
-
-	template<typename T>
-	inline void RemoveComponent(EntityID Entity)
-	{
-		//------- Has Component -------------
-		ComponentID comp_id = GetComponentTypeID<T>();
-		auto it = Components[comp_id].find(Entity);
-		//------- Remove Component Slot -------------
-		if (it != Components[comp_id].end())
-			Components[comp_id].erase(Entity);
-	}
-
-	template<typename T>
-	inline EntityGroup get_group()
-	{
-		ComponentID comp_id = GetComponentTypeID<T>();
-		auto it = Components.find(comp_id);
-		if (it != Components.end())
-			return EntityGroup(Components.at(comp_id));
-
-		return EntityGroup();
-	}
-
-	template<typename T, typename Func>
-	inline void do_for(Func func)
-	{
-		EntityGroup group = this->get_group<T>();
-		for (auto entity : group)
+		// Add Component To ComponentsMap
+		auto it = ComponentsMap.find(ComponentType);
+		if (it != ComponentsMap.end())
 		{
-			auto& [entityid, CompRef] = group.get<T>(entity);
-			func(entityid, CompRef);
+			// Component Array Is Found
+			{ // dynamic
+				if (entity < it->second.size())
+					it->second[entity] = Comp;
+				else
+					it->second.push_back(Comp);
+			}
+
+			/*
+			{ // static
+				it->second[entity] = Comp;
+			}
+			*/
+		}
+		else
+		{
+			// Component Array Not Found And Creat One
+			std::vector<std::shared_ptr<Component>> ComponentArray;
+			ComponentArray.resize(MaxEntityCount, nullptr);
+			ComponentArray[entity] = Comp;
+			ComponentsMap[ComponentType] = ComponentArray;
+		}
+
+		// Entity Signature
+		AddEntitySignature(entity, ComponentType);
+		// Update Archetypes
+		UpdateArchetypes(entity);
+	}
+
+	template<typename T>
+	T* GetComponent(Entity entity)
+	{
+		// Assert If T is A Component
+		static_assert(std::is_base_of<Component, T>::value, "T is not a Component");
+
+		ComponentType ComponentType = T::GetType();
+
+		// Get Component Array From ComponentsMap
+		auto it = ComponentsMap.find(ComponentType);
+		if (it != ComponentsMap.end())
+		{
+			// Component Array Is Found
+			std::shared_ptr<Component> Comp = it->second[entity];
+			return static_cast<T*>(Comp.get());
+		}
+		else
+		{
+			return static_cast<T*>(nullptr);
+		}
+	}
+
+	template<typename T>
+	bool HasComponent(Entity entity)
+	{
+		// Assert If T is A Component
+		static_assert(std::is_base_of<Component, T>::value, "T is not a Component");
+		
+		ComponentType ComponentType = T::GetType();
+
+		auto it = EntitySignatures.find(entity);
+		if (it != EntitySignatures.end())
+		{
+			// EntitySignatures Array Is Found
+			return it->second.test((int)ComponentType);
+		}
+		else
+		{
+			// No Signatures Means No Components
+			return false;
+		}
+	}
+
+	template<typename T>
+	void RemoveComponent(Entity entity)
+	{
+		// Assert If T is A Component
+		static_assert(std::is_base_of<Component, T>::value, "T is not a Component");
+
+		ComponentType ComponentType = T::GetType();
+
+		auto sig_it = EntitySignatures.find(entity);
+		if (sig_it != EntitySignatures.end())
+		{
+			// Signature Found
+			if (sig_it->second.test((int)ComponentType)) // Entity Has Component
+			{
+				ComponentsMap[ComponentType][entity].reset();
+				RemoveEntitySignature(entity, ComponentType, sig_it->second);
+			}
+		}
+	}
+
+	void RemoveEntity(Entity entity)
+	{
+		auto sig_it = EntitySignatures.find(entity);
+		if (sig_it != EntitySignatures.end())
+		{
+			EntitySignature sig = sig_it->second;
+			for (auto& pair : ComponentsMap)
+			{
+				if (sig.test((int)pair.first))
+				{
+					pair.second[entity].reset();
+				}
+			}
+
+			// Remove Entity Form Holding Archetype
+			const ArchetypeLayout& layout = Entity_ArchetypeLayout.at(entity);
+			Archetype& arc = Archetypes[layout];
+			arc.RemoveEntity(entity);
+
+			// Remove Archetype if Empty
+			if (arc.isEmpty())
+				Archetypes.erase(layout);
+
+			// Remove From Entity Signatures
+			EntitySignatures.erase(entity);
+
+			// Remove From Entity_ArchetypeLayout
+			Entity_ArchetypeLayout.erase(entity);
+
+			// Add To Removed Entities
+			RemovedEntities.push_front(entity);
 		}
 	}
 
 
-	// TODO:: Think About Faster Way
-	void DestroyEntity(EntityID Entity)
+	template<typename T1, typename T2>
+	std::set<Entity> group()
 	{
-		for (auto& Comp : Components)
+		std::set<Entity> ret;
+
+		int Type1 = (int)T1::GetType();
+		int Type2 = (int)T2::GetType();
+
+		for (auto& pair : Archetypes)
 		{
-			//------- Has Component -------------
-			ComponentID comp_id = Comp.first;
-			auto it = Components[comp_id].find(Entity);
-			//------- Remove Component Slot -------------
-			if (it != Components[comp_id].end())
-				Components[comp_id].erase(Entity);
+			if (pair.first.test(Type1) && pair.first.test(Type2))
+			{
+				const std::set<Entity>& set = pair.second.GetSet();
+				ret.insert(set.begin(), set.end());
+			}
 		}
+
+		return ret;
 	}
+
+
 
 private:
-	std::size_t EntityCounter = 0;
-	std::unordered_map<ComponentID, std::unordered_map<EntityID, std::shared_ptr<Component>>> Components;
-	std::vector<std::shared_ptr<System>> Systems;
+	std::unordered_map<ComponentType, std::vector<std::shared_ptr<Component>>> ComponentsMap;
+	std::unordered_map<Entity, EntitySignature> EntitySignatures;
+	std::unordered_map<ArchetypeLayout, Archetype> Archetypes;
+	std::unordered_map<Entity, ArchetypeLayout> Entity_ArchetypeLayout;
+	std::list<Entity> RemovedEntities;
+
+
+	uint32_t EntityCounter = 0u;
+
+
+	// EntitySignature
+	void AddEntitySignature(Entity entity, ComponentType ComponentType)
+	{
+		auto it = EntitySignatures.find(entity);
+		if (it != EntitySignatures.end())
+		{
+			// before Modifying Signature
+			ArchetypeLayout layout = it->second;
+			auto arch_it = Archetypes.find(layout);
+			if (arch_it != Archetypes.end())
+			{
+				// Erase this entity From Holding Archetype
+				arch_it->second.RemoveEntity(entity);
+				
+				// Remove Archetype if Empty
+				if (arch_it->second.isEmpty())
+					Archetypes.erase(arch_it->first);
+			}
+
+			// Signature Found
+			it->second.set((int)ComponentType);
+
+			// And Push it To new One After Modification
+			UpdateArchetypes(entity);
+		}
+		else
+		{
+			// Creat Signature
+			EntitySignature seg;
+			seg.set((int)ComponentType);
+			EntitySignatures[entity] = seg;
+		}
+	}
+
+	// EntitySignature
+	void RemoveEntitySignature(Entity entity, ComponentType ComponentType, EntitySignature& sig)
+	{
+		// before Modifying Signature
+		ArchetypeLayout layout = sig;
+		auto arch_it = Archetypes.find(layout);
+		if (arch_it != Archetypes.end())
+		{
+			// Erase this entity From Holding Archetype
+			arch_it->second.RemoveEntity(entity);
+
+			// Remove Archetype if Empty
+			if (arch_it->second.isEmpty())
+				Archetypes.erase(arch_it->first);
+		}
+
+		// Signature Found
+		sig.set((int)ComponentType, 0);
+
+		// And Push it To new One After Modification
+		UpdateArchetypes(entity);
+	}
+
+	void UpdateArchetypes(Entity entity)
+	{
+		ArchetypeLayout layout = EntitySignatures[entity];
+		auto arch_it = Archetypes.find(layout);
+		if (arch_it != Archetypes.end()) // Check For Suitable Archetype
+		{
+			arch_it->second.PushEntity(entity);
+		}
+		else // Creat New Archetype
+		{
+			Archetype arc;
+			arc.PushEntity(entity);
+			Archetypes[layout] = arc;
+		}
+
+		// When Push Entity
+		Entity_ArchetypeLayout[entity] = layout;
+	}
 };
 
-/*
-* Archetypes
-*/
+// Components
 
-enum class ComponentPos
-{
-	FIRST_COMPONENT = 0,
-	SECOND_COMPONENT
-};
-
-template<typename T1, typename T2>
-class ArchetypeSystem
+struct TransformComponent : Component
 {
 public:
-	ArchetypeSystem(Registry& reg)
-		: reg(reg) {}
+	TransformComponent() = default;
+	TransformComponent(TransformComponent&) = default;
+	TransformComponent(float x, float y, float z)
+		: x(x), y(y), z(z) {}
 
-	template<typename... Args>
-	inline void AddFirstComponents(EntityID entity, Args&&... args)
-	{
-		if (!reg.HasComponent<T1>(entity))
-			reg.AddComponent<T1>(entity, std::forward<Args>(args)...);
-		if (reg.HasComponent<T2>(entity))
-			archetype.AddTo(entity);
-	}
-
-	template<typename... Args>
-	inline void AddSecondComponents(EntityID entity, Args&&... args)
-	{
-		if (!reg.HasComponent<T2>(entity))
-			reg.AddComponent<T2>(entity, std::forward<Args>(args)...);
-		if (reg.HasComponent<T1>(entity))
-			archetype.AddTo(entity);
-	}
-
-	inline void RemoveComponenet(EntityID entity, ComponentPos WhichComponenet)
-	{
-		switch (WhichComponenet)
-		{
-		case ComponentPos::FIRST_COMPONENT: reg.RemoveComponent<T1>(entity); break;
-		case ComponentPos::SECOND_COMPONENT: reg.RemoveComponent<T2>(entity); break;
-		default: break;
-		}
-
-		archetype.Erase(entity);
-	}
-
-	std::vector<EntityID>::iterator begin() { return archetype.begin(); }
-	std::vector<EntityID>::iterator end() { return archetype.end(); }
+	float x, y, z = 0.0f;
 
 
-	std::pair<T1&, T2&> get(EntityID Entity)
-	{
-		T1& FirstComponent = reg.GetComponentWithoutAssertion<T1>(Entity);
-		T2& SecondComponent = reg.GetComponentWithoutAssertion<T2>(Entity);
+	static ComponentType GetType() { return ComponentType::TransformComponent; }
+};
 
-		return { FirstComponent, SecondComponent };
-	}
+struct SpriteRendererComponent : Component
+{
+public:
+	SpriteRendererComponent() = default;
+	SpriteRendererComponent(SpriteRendererComponent&) = default;
+	SpriteRendererComponent(float r, float g, float b)
+		: r(r), g(g), b(b) {}
 
-private:
-	Registry& reg;
-	Archetype archetype;
+	float r, g, b = 1.0f;
+
+
+	static ComponentType GetType() { return ComponentType::SpriteRendererComponent; }
+};
+
+struct TextRendererComponent : Component
+{
+public:
+	TextRendererComponent() = default;
+	TextRendererComponent(TextRendererComponent&) = default;
+	TextRendererComponent(const std::string& text)
+		: text(text) {}
+
+	std::string text = "";
+
+
+	static ComponentType GetType() { return ComponentType::TextRendererComponent; }
 };
